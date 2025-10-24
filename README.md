@@ -1,6 +1,24 @@
-# Assignment 3 Chatbot Deployment Guide (Python Version)
+# RMIT Cyber Security Course Advisor — Python (Streamlit)
 
-**Purpose:** Help students and tutors deploy and run the Assignment 3 chatbot on Windows 10/11 or macOS using VS Code.
+**Purpose:**
+- A Streamlit chatbot that helps RMIT students explore and choose courses in the Bachelor of Cyber Security (BP355 / BP356).
+- Uses local structured JSON or uploaded PDFs as the knowledge source and calls AWS Bedrock (Anthropic Claude) via Cognito authentication.
+
+**Repository layout**
+- `app.py` — main Streamlit application (login page, chat UI, data loaders, Bedrock integration).
+- `requirements.txt` — Python dependencies.
+- `courses_data.json` — preloaded structured course data (optional; app will load automatically if present).
+- `cyber_security_program_structure.json` — preloaded study-structure (optional).
+- `Fw_ BP355 enrolment project/` — optional folder with original PDF documents used for testing unstructured input.
+
+**Key features**
+- Login page: enter Cognito USERNAME and PASSWORD (stored in session state) before using the app. Credentials are used to obtain temporary AWS credentials for Bedrock calls.
+- Two input modes:
+  - Structured JSON (preloaded): app reads `courses_data.json` and program structure file from the project folder automatically.
+  - Unstructured PDF: upload one or more PDF documents; the app extracts text and builds a prompt for the model.
+- Vertical chat layout: conversation appears in a vertical stream like typical chat UIs. Messages render immediately after sending and after the assistant reply.
+- Bedrock / Claude integration: prompts are sent to the configured model (set in `app.py`). Responses appear as assistant messages in the chat.
+- Prompt building: when JSON mode is used, the app builds a detailed prompt including course listings and recommended study structure to guide the model.
 
 ---
 
