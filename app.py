@@ -201,7 +201,7 @@ if not st.session_state["authenticated"]:
 # --- Main App (after login) ---
 st.sidebar.markdown("---")
 
-st.sidebar.subheader("Step 1: Choose your data input format")
+st.sidebar.subheader("Choose your data input format")
 upload_mode = st.sidebar.radio("Select format:", ["Structured JSON files (preloaded)", "Unstructured PDF files"])
 
 # For structured mode, the two JSON files are already loaded from disk.
