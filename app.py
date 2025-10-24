@@ -190,7 +190,7 @@ if not st.session_state["authenticated"]:
         else:
             # Do not attempt to validate here to avoid unnecessary AWS calls on login.
             st.session_state["authenticated"] = True
-            st.experimental_rerun()
+            st.rerun()
 
     st.info("Enter your Cognito username/password to proceed. The structured JSON files are loaded from the project folder automatically.")
     # Show whether default JSONs found
