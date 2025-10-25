@@ -232,6 +232,7 @@ def render_messages():
                 st.markdown(f"**You:** {msg['content']}")
             else:
                 st.markdown(f"**Assistant:** {msg['content']}")
+                st.markdown("---")
 
 # initial render (top-level)
 render_messages()
