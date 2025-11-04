@@ -155,6 +155,57 @@ def load_default_jsons():
     return courses, structure
 
 
+# --- Simple client-side memory / context tracking configuration ---
+CONTEXT_WINDOW = 6            # number of recent turns to include
+SUMMARY_INTERVAL = 8          # summarise after this many total messages
+SUMMARY_MAX_TOKENS = 256
+
+if "conversation_summary" not in st.session_state:
+    st.session_state["conversation_summary"] = ""  # condensed long-term memory
+
+def recent_messages_text(messages, window=CONTEXT_WINDOW):
+    if not messages:
+        return ""
+    recent = messages[-window:]
+    parts = []
+    for m in recent:
+        role = "User" if m["role"] == "user" else "Assistant"
+        parts.append(f"{role}: {m['content']}")
+    return "\n".join(parts)
+
+def summarize_conversation(username, password):
+    """Ask the model to produce a short summary of the conversation so far and store it."""
+    messages = st.session_state.get("messages", [])
+    if not messages:
+        return ""
+    convo_text = "\n".join([f"{('User' if m['role']=='user' else 'Assistant')}: {m['content']}" for m in messages])
+    prompt = (
+        "You are a system that produces a concise summary of a conversation between a user and an assistant.\n\n"
+        "Conversation:\n"
+        + convo_text
+        + "\n\nProvide a short bullet-list summary (3-6 bullets) capturing the user's goals, preferences, constraints and any decisions."
+    )
+    try:
+        summary = invoke_bedrock(prompt, username, password, max_tokens=SUMMARY_MAX_TOKENS, temperature=0.0)
+        st.session_state["conversation_summary"] = summary.strip()
+        return st.session_state["conversation_summary"]
+    except Exception:
+        # keep existing summary if summarization fails
+        return st.session_state.get("conversation_summary", "")
+
+def build_prompt_with_context(base_prompt, user_question):
+    """Combine long-term summary + recent turns + base prompt (courses/pdf) + new question."""
+    summary = st.session_state.get("conversation_summary", "")
+    recent = recent_messages_text(st.session_state.get("messages", []), window=CONTEXT_WINDOW)
+    sections = []
+    if summary:
+        sections.append("Conversation summary (long-term memory):\n" + summary + "\n")
+    if recent:
+        sections.append("Recent conversation (most recent first):\n" + recent + "\n")
+    sections.append("Context data:\n" + base_prompt + "\n")
+    sections.append("User's new question:\n" + user_question + "\n")
+    return "\n\n".join(sections)
+
 # === Streamlit UI: Setup and Session State === #
 st.set_page_config(page_title="RMIT Cyber Security Course Advisor", layout="centered")
 
@@ -269,25 +320,30 @@ with st.form("ask_form", clear_on_submit=True):
                     structure = st.session_state.get("structure")
                     if not courses or not structure:
                         st.error("Structured data missing. Cannot answer.")
-                        st.stop()   
-                    prompt = build_prompt(courses, user_input, structure)
+                        st.stop()
+                    base_prompt = build_prompt(courses, "", structure)   # base context only
                 else:
                     if not uploaded_pdfs:
                         st.error("Please upload at least one PDF file for unstructured mode.")
                         st.stop()
                     extracted_text = extract_text_from_pdfs(uploaded_pdfs)
-                    prompt = (
-                        "You are a course advisor. The following is extracted from official course documents:\n\n"
-                        + extracted_text +
-                        "\n\nPlease answer the following question based on this information:\n"
-                        + user_input
-                    )
+                    base_prompt = "You are a course advisor. The following is extracted from official course documents:\n\n" + extracted_text
+
+                # build final prompt including memory + recent turns
+                prompt = build_prompt_with_context(base_prompt, user_input)
 
                 with st.spinner("\U0001F50D Generating advice..."):
                     answer = invoke_bedrock(prompt, st.session_state["username"], st.session_state["password"])
-                # Append assistant message and render immediately so reply shows without needing another send
+                # Append assistant reply
                 st.session_state["messages"].append({"role": "assistant", "content": answer})
                 render_messages()
+
+                # Periodic summarization to compress long-term memory
+                total_msgs = len(st.session_state.get("messages", []))
+                if total_msgs >= SUMMARY_INTERVAL and total_msgs % SUMMARY_INTERVAL == 0:
+                    # summarization will update st.session_state["conversation_summary"]
+                    summarize_conversation(st.session_state["username"], st.session_state["password"])
             except Exception as e:
                 st.session_state["messages"].append({"role": "assistant", "content": f"[Error]: {str(e)}"})
                 render_messages()
+    
