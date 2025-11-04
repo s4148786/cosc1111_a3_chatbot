@@ -23,11 +23,11 @@ Key features
 - (Optional) Future: vector indexing / embeddings for large-document retrieval.
 
 Repository layout
-- app.py — main Streamlit app (login, chat UI, data loaders, Bedrock integration).
-- requirements.txt — Python dependencies.
-- courses_data.json — preloaded structured course data (optional).
-- cyber_security_program_structure.json — preloaded study structure (optional).
-- Fw_ BP355 enrolment project/ — optional PDFs for testing.
+- `app.py` — main Streamlit app (login, chat UI, data loaders, Bedrock integration).
+- `requirements.txt` — Python dependencies.
+- `courses_data.json` — preloaded structured course data (optional).
+- `cyber_security_program_structure.json` — preloaded study structure (optional).
+- `Fw_ BP355 enrolment project/` — optional PDFs for testing.
 
 How it works (high level)
 1. User logs in with Cognito username/password.
@@ -41,31 +41,18 @@ How it works (high level)
 5. The model response is streamed (if available), shown in the chat and appended to conversation history.
 6. Periodically the app asks the model to summarize older turns into the long-term conversation summary to keep context compact.
 
-Helper functions (what they do)
-- get_credentials(username, password)
-  - Exchange Cognito username/password for temporary AWS credentials (Identity Pool) used to call Bedrock.
-- build_prompt(courses, user_question, structure=None)
-  - Create a detailed textual prompt from structured JSON course data and optional program structure; appends the user's question.
-- build_prompt_with_context(base_context, user_question)
-  - Compose the final prompt by injecting long-term summary + recent turns + base context + current question (used for memory).
-- extract_text_from_pdfs(pdf_files)
-  - Read uploaded PDFs page-by-page, extract text, and return a combined cleaned text block for use in prompts.
-- clean_text_block(text, max_chars=...)
-  - Normalise Unicode, remove headers/footers/page markers, collapse whitespace, deduplicate noisy lines and truncate long text.
-- load_default_jsons()
-  - Load the two structured JSON files (`courses_data.json`, `cyber_security_program_structure.json`) from the app folder if present.
-- invoke_bedrock(prompt_text, username, password, max_tokens=..., temperature=..., top_p=...)
-  - Call AWS Bedrock (Anthropic model) with the built prompt using temp credentials; returns the model response (synchronous).
-- invoke_bedrock_stream(prompt_text, username, password, ...)
-  - (Optional/if implemented) Read the Bedrock response body in chunks and yield progressive text for streaming UI updates.
-- recent_messages_text(messages, window=CONTEXT_WINDOW)
-  - Produce a compact text representation of the most recent conversation turns to include in prompts.
-- summarize_conversation(username, password)
-  - Ask the model to summarise older conversation turns into a short bullet-list summary stored in session state (long-term memory).
-- render_messages()
-  - Render the chat history from session_state into the single-column chat container (keeps UI consistent).
-- Any persistence helpers (e.g., save/load conversation)
-  - Save and restore messages and conversation_summary to disk/DB if persistence is enabled.
+| Function | Description |
+|----------|-------------|
+| `get_credentials(username, password)` | Exchange Cognito username/password for temporary AWS credentials (Identity Pool) used to call Bedrock. |
+| `build_prompt(courses, user_question, structure=None)` | Create a detailed textual prompt from structured JSON course data and optional program structure; appends the user's question. |
+| `build_prompt_with_context(base_context, user_question)` | Compose the final prompt by injecting long-term summary + recent turns + base context + current question (used for memory). |
+| `extract_text_from_pdfs(pdf_files)` | Read uploaded PDFs page-by-page, extract text, and return a combined cleaned text block for use in prompts. |
+| `load_default_jsons()` | Load the two structured JSON files (`courses_data.json`, `cyber_security_program_structure.json`) from the app folder if present. |
+| `invoke_bedrock(prompt_text, username, password, max_tokens=..., temperature=..., top_p=...)` | Call AWS Bedrock (Anthropic model) with the built prompt using temp credentials; returns the model response (synchronous). |
+| `recent_messages_text(messages, window=CONTEXT_WINDOW)` | Produce a compact text representation of the most recent conversation turns to include in prompts. |
+| `summarize_conversation(username, password)` | Ask the model to summarise older conversation turns into a short bullet-list summary stored in session state (long-term memory). |
+| `render_messages()` | Render the chat history from session_state into the single-column chat container (keeps UI consistent). |
+
 
 Quick start (Windows)
 1. Open PowerShell and navigate to the project folder:
