@@ -16,6 +16,10 @@ IDENTITY_POOL_ID = "ap-southeast-2:eaa059af-fd47-4692-941d-e314f2bd5a0e"
 USER_POOL_ID = "ap-southeast-2_NfoZbDvjD"
 APP_CLIENT_ID = "3p3lrenj17et3qfrnvu332dvka"
 
+CONTEXT_WINDOW = 6            # number of recent turns to include
+SUMMARY_INTERVAL = 8          # summarise after this many total messages
+SUMMARY_MAX_TOKENS = 256      # max tokens for summary generation
+
 # Default placeholders (will be overridden by login)
 USERNAME = ""
 PASSWORD = ""
@@ -156,10 +160,6 @@ def load_default_jsons():
 
 
 # --- Simple client-side memory / context tracking configuration ---
-CONTEXT_WINDOW = 6            # number of recent turns to include
-SUMMARY_INTERVAL = 8          # summarise after this many total messages
-SUMMARY_MAX_TOKENS = 256
-
 if "conversation_summary" not in st.session_state:
     st.session_state["conversation_summary"] = ""  # condensed long-term memory
 
@@ -346,4 +346,3 @@ with st.form("ask_form", clear_on_submit=True):
             except Exception as e:
                 st.session_state["messages"].append({"role": "assistant", "content": f"[Error]: {str(e)}"})
                 render_messages()
-    

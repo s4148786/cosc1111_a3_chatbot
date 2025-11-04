@@ -1,198 +1,75 @@
 # RMIT Cyber Security Course Advisor — Python (Streamlit)
 
-**Purpose:**
-- A Streamlit chatbot that helps RMIT students explore and choose courses in the Bachelor of Cyber Security (BP355 / BP356).
-- Uses local structured JSON or uploaded PDFs as the knowledge source and calls AWS Bedrock (Anthropic Claude) via Cognito authentication.
-
-**Repository layout**
-- `app.py` — main Streamlit application (login page, chat UI, data loaders, Bedrock integration).
-- `requirements.txt` — Python dependencies.
-- `courses_data.json` — preloaded structured course data (optional; app will load automatically if present).
-- `cyber_security_program_structure.json` — preloaded study-structure (optional).
-- `Fw_ BP355 enrolment project/` — optional folder with original PDF documents used for testing unstructured input.
-
-**Key features**
-- Login page: enter Cognito USERNAME and PASSWORD (stored in session state) before using the app. Credentials are used to obtain temporary AWS credentials for Bedrock calls.
-- Two input modes:
-  - Structured JSON (preloaded): app reads `courses_data.json` and program structure file from the project folder automatically.
-  - Unstructured PDF: upload one or more PDF documents; the app extracts text and builds a prompt for the model.
-- Vertical chat layout: conversation appears in a vertical stream like typical chat UIs. Messages render immediately after sending and after the assistant reply.
-- Bedrock / Claude integration: prompts are sent to the configured model (set in `app.py`). Responses appear as assistant messages in the chat.
-- Prompt building: when JSON mode is used, the app builds a detailed prompt including course listings and recommended study structure to guide the model.
-
----
-
-## 🗂️ Preparation
-
-### 📁 Step 0: Download Starter Files
-
-* Download the ZIP package from Canvas: `Assignment3_Chatbot_Python.zip`
-* Unzip the folder to a known location (e.g., Desktop)
-* The folder structure looks like this:
-
-```
-Assignment3_Chatbot_Python/
-├── app.py
-├── requirements.txt
-├── chatbot_logic.py
-├── Fw_ BP355 enrolment project/   <- raw PDFs
-├── courses_data.json
-├── cyber_security_program_structure.json
-```
-
----
-
-## 🧰 Step 1: Check Python Version
-
-### ✅ Requirement: Python 3.11
-
-Open Terminal (macOS) or Command Prompt / PowerShell (Windows), and run:
-
-```bash
-python --version
-```
-
-If the version is **not 3.11.x**, download and install it from: [https://www.python.org/downloads/release/python-3110/](https://www.python.org/downloads/release/python-3110/)
-
----
-
-## 🐍 Step 2: Set Up Virtual Environment (Recommended)
-
-In your terminal, navigate into the unzipped folder:
-
-```bash
-cd path/to/Assignment3_Chatbot_Python
-```
-
-Create and activate a virtual environment:
-
-### Windows:
-
-```bash
-python -m venv .venv
-.\.venv\Scripts\activate
-```
-
-### macOS:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
----
-
-## 📦 Step 3: Install Dependencies
-
-Don't forget to paste your username and password inside to the app.py
-
-Signup at here:
-
-https://ap-southeast-2nfozbdvjd.auth.ap-southeast-2.amazoncognito.com/login?client_id=3p3lrenj17et3qfrnvu332dvka&response_type=code&scope=email+openid+phone&redirect_uri=https%3A%2F%2Fd84l1y8p4kdic.cloudfront.net
-
-```
-USERNAME = "" # Replace with your username
-PASSWORD = ""    # Replace with your password
-```
-
-You can choose one of these model as you like:
-
-anthropic.claude-3-haiku-20240307-v1:0
- 
-anthropic.claude-3-5-sonnet-20241022-v2:0
- 
-
-Once your virtual environment is activated, install all dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-If installation is successful, you’ll return to the prompt without errors.
-
-Sometimes, You might see the warning like 'Import "streamlit" could not be resolvedPylancereportMissingImports' in your VS Code editor. Don't worry — this warning is from the VS Code language server (Pylance) and does not affect code execution as long as streamlit is installed correctly.
-
-This usually happens when:
-
-VS Code is not using the correct Python interpreter (e.g. your virtual environment), or
-
-The language server hasn't picked up the environment changes yet.
-
-✅ If you have already installed the requirements and can run the app using:
-
-streamlit run app.py
-then everything is working as expected, and you can safely ignore this warning.
-
-
----
-
-## 🚀 Step 4: Run the Chatbot
-
-To launch the chatbot UI:
-
-```bash
-streamlit run app.py
-```
-
-This will open a browser window with your chatbot interface.
-
-### Quick run (Windows PowerShell)
-
-If `streamlit` is installed but the `streamlit` command is not found, run Streamlit with the interpreter on your PATH:
-
-```powershell
-python -m streamlit run app.py
-```
-
-Streamlit may prompt for an optional email address in the terminal; you can leave it blank and press Enter. To stop the server, press Ctrl+C in the PowerShell window.
-
-
----
-
-## 📂 Step 5: Upload Course Data
-
-In the chatbot UI:
-
-1. Choose upload mode: `Structured JSON` or `PDF`
-2. Upload the following (if using JSON mode):
-
-   * `courses_data.json`
-   * `cyber_security_program_structure.json`
-
-
-You can also upload the original PDFs from the `data/Fw_ BP355 enrolment project` folder for testing unstructured sources.
-
----
-
-## 💬 Step 6: Start Chatting
-
-Type a question such as:
-
-* *"What’s the difference between COSC2626 and INTE2402?"*
-* *"How do I enrol in COSC1111?"*
-
-The chatbot will respond based on the uploaded data.
-
-
----
-
-## ❓ Troubleshooting
-
-| Issue                          | Solution                                                      |
-| ------------------------------ | ------------------------------------------------------------- |
-| `streamlit: command not found` | Make sure virtual environment is activated                    |
-| Cannot install packages        | Ensure you have Python 3.11 and pip is working                |
-| No browser opens               | Visit [http://localhost:8501](http://localhost:8501) manually |
-| Data not loaded properly       | Check file formats and filenames                              |
-
----
-
-## ✅ Done!
-
-You now have a fully working Assignment 3 chatbot. You can begin answering assignment questions and improving your knowledge base.
-
-For more advanced tasks (prompt tuning, data cleaning, documentation), please refer to the **Course Enrolment Chatbot Handbook**.
-
----
-
-© RMIT COSC1111/COSC3113 - Oct 2025
+Overview
+- Streamlit chatbot to help RMIT students explore and choose courses in the Bachelor of Cyber Security (BP355 / BP356).
+- Uses preloaded structured JSON or uploaded PDFs as the knowledge source and calls AWS Bedrock (Anthropic Claude) via Cognito authentication.
+
+Key features
+- Login: enter Cognito USERNAME and PASSWORD (stored in session_state) to get temporary Bedrock credentials.
+- Two data input modes:
+  - Structured JSON (preloaded): reads `courses_data.json` and `cyber_security_program_structure.json` automatically.
+  - Unstructured PDFs: upload PDF(s); text is extracted, cleaned and used as context.
+- Vertical chat UI: single-column, chronological chat like ChatGPT. Messages render immediately.
+- Automatic client-side memory:
+  - Short-term context: recent N turns are injected automatically.
+  - Long-term memory: model-generated conversation summary is created periodically and injected into prompts.
+  - Memory is seamless — no extra user steps required.
+- Prompt editing: generated prompts are visible and editable before being sent to the model (auditability & control).
+- Real-time responses: model output is streamed incrementally to the UI (when model/endpoint supports chunked responses).
+- Model selection: choose between available Bedrock model IDs in the sidebar:
+  - anthropic.claude-3-5-sonnet-20241022-v2:0
+  - anthropic.claude-3-haiku-20240307-v1:0
+- Data cleaning: extracted text is cleaned (headers/footers removed, whitespace normalized, truncation) to reduce noise and token use.
+- (Optional) Future: vector indexing / embeddings for large-document retrieval.
+
+Repository layout
+- app.py — main Streamlit app (login, chat UI, data loaders, Bedrock integration).
+- requirements.txt — Python dependencies.
+- courses_data.json — preloaded structured course data (optional).
+- cyber_security_program_structure.json — preloaded study structure (optional).
+- Fw_ BP355 enrolment project/ — optional PDFs for testing.
+
+How it works (high level)
+1. User logs in with Cognito username/password.
+2. App exchanges credentials for temporary AWS credentials and uses them to call Bedrock.
+3. The app builds a prompt from:
+   - preloaded JSON or cleaned PDF text,
+   - automatic conversation summary (long-term memory),
+   - recent conversation turns (short-term memory),
+   - the user's current question.
+4. Optionally the user edits the prompt, then sends it to the selected model.
+5. The model response is streamed (if available), shown in the chat and appended to conversation history.
+6. Periodically the app asks the model to summarize older turns into the long-term conversation summary to keep context compact.
+
+Quick start (Windows)
+1. Open PowerShell and navigate to the project folder:
+   cd "c:\path\to\Assignment3_Chatbot_Python"
+2. Create and activate venv:
+   python -m venv .venv
+   .\.venv\Scripts\activate
+3. Install dependencies:
+   pip install -r requirements.txt
+4. Run app:
+   python -m streamlit run app.py
+
+Configuration notes
+- Place `courses_data.json` and `cyber_security_program_structure.json` next to app.py to use Structured JSON mode.
+- Cognito / Bedrock settings live at the top of app.py (COGNITO_REGION, MODEL_ID, IDENTITY_POOL_ID, USER_POOL_ID, APP_CLIENT_ID). Do not commit secrets.
+- Provide valid Cognito username/password at the login screen (the app exchanges these for temporary AWS credentials at runtime).
+- Model selection is available in the sidebar.
+
+Security & privacy
+- Do NOT hardcode or commit secrets (AWS keys, passwords). This app stores login in session_state only while the session runs.
+- Uploaded PDFs and conversation data are processed in memory. If you enable persistence, encrypt or restrict access and add a privacy notice.
+
+Troubleshooting
+- streamlit command not found: ensure venv is active or run python -m streamlit run app.py
+- Missing JSON files: place required files next to app.py or use PDF mode
+- Authentication errors: check username/password and Cognito configuration; network access is required.
+
+Development notes
+- Important functions to inspect: prompt builder (build_prompt / build_prompt_with_context), PDF extractor & cleaner, invoke_bedrock (sync and streaming), summarize_conversation.
+- Suggested improvements: background summarization, persistent memory store, embeddings + FAISS for retrieval, unit tests for cleaning & prompt builder.
+
+License / attribution
+- Course material and code adapted for RMIT COSC1111 / Assignment 3 (Oct 2025). Use for learning and assignment purposes only.
