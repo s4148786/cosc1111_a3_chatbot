@@ -5,15 +5,13 @@
 import streamlit as st
 import json
 import boto3
-from datetime import datetime
 from PyPDF2 import PdfReader
-import os
 from pathlib import Path
 
 # === AWS Configuration === #
 COGNITO_REGION = "ap-southeast-2"
 BEDROCK_REGION = "ap-southeast-2"
-MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
+MODEL_ID = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 IDENTITY_POOL_ID = "ap-southeast-2:eaa059af-fd47-4692-941d-e314f2bd5a0e"
 USER_POOL_ID = "ap-southeast-2_NfoZbDvjD"
 APP_CLIENT_ID = "3p3lrenj17et3qfrnvu332dvka"
@@ -171,6 +169,7 @@ if "messages" not in st.session_state:
 if "courses" not in st.session_state:
     st.session_state["courses"], st.session_state["structure"] = load_default_jsons()
 
+# === StreamLit starts making the page === #
 st.sidebar.title("\U0001F393 Cyber Security Course Advisor")
 st.sidebar.markdown("This assistant helps students in RMIT's Bachelor of Cyber Security (BP355/BP356) choose courses.")
 
@@ -215,6 +214,20 @@ else:
     uploaded_pdfs = st.sidebar.file_uploader("\U0001F4C4 Upload one or more PDF files", type=["pdf"], accept_multiple_files=True)
     # Clear structured preloaded message if exists
     # uploaded_* JSON uploaders removed per request (files are preloaded)
+
+# --- Model selection (sidebar) ---
+st.sidebar.markdown("---")
+st.sidebar.markdown("### Model selection")
+model_choice = st.sidebar.radio(
+    "Select Bedrock model:",
+    [
+        "anthropic.claude-3-5-sonnet-20241022-v2:0",
+        "anthropic.claude-3-haiku-20240307-v1:0",
+    ],
+    index=0 if MODEL_ID == "anthropic.claude-3-5-sonnet-20241022-v2:0" else 1,
+)
+# update MODEL_ID so invoke_bedrock uses the selected model
+MODEL_ID = model_choice
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"Logged in as: `{st.session_state['username']}`")
