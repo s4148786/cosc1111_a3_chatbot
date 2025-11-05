@@ -1,90 +1,77 @@
 # RMIT Cyber Security Course Advisor — Python (Streamlit)
 
 Overview
-- Streamlit chatbot to help RMIT students explore and choose courses in the Bachelor of Cyber Security (BP355 / BP356).
-- Uses preloaded structured JSON or uploaded PDFs as the knowledge source and calls AWS Bedrock (Anthropic Claude) via Cognito authentication.
+- A Streamlit chatbot to help RMIT students explore and choose courses in the Bachelor of Cyber Security (BP355 / BP356).
+- The app uses either preloaded structured JSON files or uploaded PDF documents as the knowledge source and calls AWS Bedrock (Anthropic Claude models) using Cognito authentication to obtain temporary credentials.
 
-Key features
-- Login: enter Cognito USERNAME and PASSWORD (stored in session_state) to get temporary Bedrock credentials.
-- Two data input modes:
-  - Structured JSON (preloaded): reads `courses_data.json` and `cyber_security_program_structure.json` automatically.
-  - Unstructured PDFs: upload PDF(s); text is extracted, cleaned and used as context.
-- Vertical chat UI: single-column, chronological chat like ChatGPT. Messages render immediately.
-- Automatic client-side memory:
-  - Short-term context: recent N turns are injected automatically.
-  - Long-term memory: model-generated conversation summary is created periodically and injected into prompts.
-  - Memory is seamless — no extra user steps required.
-- Prompt editing: generated prompts are visible and editable before being sent to the model (auditability & control).
-- Real-time responses: model output is streamed incrementally to the UI (when model/endpoint supports chunked responses).
-- Model selection: choose between available Bedrock model IDs in the sidebar:
-  - anthropic.claude-3-5-sonnet-20241022-v2:0
-  - anthropic.claude-3-haiku-20240307-v1:0
-- Data cleaning: extracted text is cleaned (headers/footers removed, whitespace normalized, truncation) to reduce noise and token use.
-- (Optional) Future: vector indexing / embeddings for large-document retrieval.
-
-Repository layout
-- `app.py` — main Streamlit app (login, chat UI, data loaders, Bedrock integration).
+Repository contents
+- `app.py` — main Streamlit application (login, chat UI, data loaders, Bedrock integration).
 - `requirements.txt` — Python dependencies.
-- `courses_data.json` — preloaded structured course data (optional).
-- `cyber_security_program_structure.json` — preloaded study structure (optional).
-- `Fw_ BP355 enrolment project/` — optional PDFs for testing.
+- `courses_data.json` — optional structured course data (used in Structured JSON mode if present).
+- `cyber_security_program_structure.json` — optional program-structure data (used in Structured JSON mode if present).
+- `Fw_ BP355 enrolment project/` — optional folder for test PDFs.
 
-How it works (high level)
-1. User logs in with Cognito username/password.
-2. App exchanges credentials for temporary AWS credentials and uses them to call Bedrock.
-3. The app builds a prompt from:
-   - preloaded JSON or cleaned PDF text,
-   - automatic conversation summary (long-term memory),
-   - recent conversation turns (short-term memory),
-   - the user's current question.
-4. Optionally the user edits the prompt, then sends it to the selected model.
-5. The model response is streamed (if available), shown in the chat and appended to conversation history.
-6. Periodically the app asks the model to summarize older turns into the long-term conversation summary to keep context compact.
+Key behaviours (current implementation)
+- Login: users enter a Cognito username and password on the login page. These are stored in `st.session_state` for the session and are used to exchange for temporary AWS credentials when calling Bedrock.
+- Input modes:
+  - Structured JSON (preloaded): the app attempts to load `courses_data.json` and `cyber_security_program_structure.json` from the same folder as `app.py` and uses them as the knowledge base.
+  - Unstructured PDFs: after login the user can upload one or more PDFs; the app extracts page text and uses that extracted text as prompt context.
+- Chat UI: a vertical, single-column chat view where user questions and assistant replies are appended to `st.session_state['messages']` and re-rendered on each interaction.
+- Memory and context:
+  - Short-term context: the most recent N turns (controlled by `CONTEXT_WINDOW`) are included in prompts.
+  - Long-term memory: the app periodically asks the model to summarise older conversation turns into a concise bullet-list summary (`SUMMARY_INTERVAL`, `SUMMARY_MAX_TOKENS`) that is stored in `st.session_state['conversation_summary']` and injected into future prompts.
+- Model selection: the sidebar allows selecting the Bedrock model ID; the chosen model is saved into `st.session_state['model_id']` for use when invoking Bedrock.
 
-| Function | Description |
-|----------|-------------|
-| `get_credentials(username, password)` | Exchange Cognito username/password for temporary AWS credentials (Identity Pool) used to call Bedrock. |
-| `build_prompt(courses, user_question, structure=None)` | Create a detailed textual prompt from structured JSON course data and optional program structure; appends the user's question. |
-| `build_prompt_with_context(base_context, user_question)` | Compose the final prompt by injecting long-term summary + recent turns + base context + current question (used for memory). |
-| `extract_text_from_pdfs(pdf_files)` | Read uploaded PDFs page-by-page, extract text, and return a combined cleaned text block for use in prompts. |
-| `load_default_jsons()` | Load the two structured JSON files (`courses_data.json`, `cyber_security_program_structure.json`) from the app folder if present. |
-| `invoke_bedrock(prompt_text, username, password, max_tokens=..., temperature=..., top_p=...)` | Call AWS Bedrock (Anthropic model) with the built prompt using temp credentials; returns the model response (synchronous). |
-| `recent_messages_text(messages, window=CONTEXT_WINDOW)` | Produce a compact text representation of the most recent conversation turns to include in prompts. |
-| `summarize_conversation(username, password)` | Ask the model to summarise older conversation turns into a short bullet-list summary stored in session state (long-term memory). |
-| `render_messages()` | Render the chat history from session_state into the single-column chat container (keeps UI consistent). |
+Important implementation notes (accurate to `app.py`)
+- The app programmatically builds prompts from structured JSON or extracted PDF text plus recent conversation and any stored summary, then sends the prompt to Bedrock. There is not a prompt-edit UI for manual editing.
+- The `invoke_bedrock` function performs synchronous model invocations (it builds a JSON payload and calls Bedrock via the `bedrock-runtime` client). The app does not currently show chunked/streamed output in the UI.
+- `extract_text_from_pdfs` uses PyPDF2's `PdfReader` to extract page text. It does not currently perform advanced header/footer removal or token-aware truncation.
 
+Key configuration values (top of `app.py`)
+- COGNITO_REGION, BEDROCK_REGION — AWS regions used for Cognito and Bedrock calls.
+- IDENTITY_POOL_ID, USER_POOL_ID, APP_CLIENT_ID — Cognito identifiers used for token exchange and identity.
+- MODEL_ID — default Bedrock model id (can be changed in the sidebar at runtime).
+- CONTEXT_WINDOW, SUMMARY_INTERVAL, SUMMARY_MAX_TOKENS — control short- and long-term memory behaviour.
 
-Quick start (Windows)
+Important functions (high level)
+- `get_credentials(username, password)` — exchanges the provided Cognito username/password for an IdToken and then obtains temporary AWS credentials via an Identity Pool.
+- `build_prompt(courses, user_question, structure=None)` — creates a textual prompt from structured course JSON and optional program structure.
+- `build_prompt_with_context(base_prompt, user_question)` — composes the final prompt by injecting the long-term summary and recent messages before the user's new question.
+- `extract_text_from_pdfs(pdf_files)` — extracts text from uploaded PDFs and combines page text into a single block.
+- `load_default_jsons()` — loads `courses_data.json` and `cyber_security_program_structure.json` if they exist next to `app.py`.
+- `invoke_bedrock(prompt_text, username, password, ...)` — exchanges credentials and calls Bedrock synchronously, returning the model text response.
+
+Quick start (Windows PowerShell)
 1. Open PowerShell and navigate to the project folder:
-   cd "c:\path\to\Assignment3_Chatbot_Python"
-2. Create and activate venv:
+   cd "c:\Users\ryanj\OneDrive\Documents\__2 Uni Files\RMIT\COSC1111\Assignment3_Chatbot_Python"
+2. Create and activate a virtual environment:
    python -m venv .venv
-   .\.venv\Scripts\activate
+   .\.venv\Scripts\Activate
 3. Install dependencies:
    pip install -r requirements.txt
-4. Run app:
+4. Run the app:
    python -m streamlit run app.py
 
-Configuration notes
-- Place `courses_data.json` and `cyber_security_program_structure.json` next to app.py to use Structured JSON mode.
-- Cognito / Bedrock settings live at the top of app.py (COGNITO_REGION, MODEL_ID, IDENTITY_POOL_ID, USER_POOL_ID, APP_CLIENT_ID). Do not commit secrets.
-- Provide valid Cognito username/password at the login screen (the app exchanges these for temporary AWS credentials at runtime).
-- Model selection is available in the sidebar.
+Configuration & usage
+- For Structured JSON mode, place `courses_data.json` and `cyber_security_program_structure.json` next to `app.py`.
+- At login, provide a valid Cognito username/password. The app exchanges these for temporary AWS credentials and uses them only during the session to call Bedrock.
+- Review the identifiers at the top of `app.py` and avoid committing secrets or private keys.
 
 Security & privacy
-- Do NOT hardcode or commit secrets (AWS keys, passwords). This app stores login in session_state only while the session runs.
-- Uploaded PDFs and conversation data are processed in memory. If you enable persistence, encrypt or restrict access and add a privacy notice.
+- Do NOT commit AWS secrets or persistent credentials to this repository.
+- Uploaded PDFs and conversation contents are processed in memory; if you add persistence, adopt encryption and access controls.
 
 Troubleshooting
-- streamlit command not found: ensure venv is active or run python -m streamlit run app.py
-- Missing JSON files: place required files next to app.py or use PDF mode
-- Authentication errors: check username/password and Cognito configuration; network access is required.
+- `streamlit` command not found: activate your virtualenv or run `python -m streamlit run app.py`.
+- Missing JSON files: place the required JSON files next to `app.py` or use PDF upload mode after login.
+- Authentication errors: verify username/password and the Cognito/Identity Pool configuration. Networking to AWS endpoints is required.
 
-Development notes
-- Important functions to inspect: prompt builder (build_prompt / build_prompt_with_context), PDF extractor & cleaner, invoke_bedrock (sync and streaming), summarize_conversation.
-- Suggested improvements: background summarization, persistent memory store, embeddings + FAISS for retrieval, unit tests for cleaning & prompt builder.
+Development notes & suggested enhancements
+- Add a prompt-preview/edit UI for transparency and auditing.
+- Implement streaming/chunked responses if the bedrock runtime supports it and adapt the UI accordingly.
+- Improve PDF cleaning (strip headers/footers, page filtering) and add token-aware truncation to avoid oversized prompts.
+- Add embeddings + a vector store (FAISS, Milvus) for retrieval on large document sets.
+- Add basic unit tests for the prompt builder and PDF extraction.
 
 License / attribution
-- Course material and code adapted for RMIT COSC1111 / Assignment 3 (Oct 2025). Use for learning and assignment purposes only.
-```// filepath: c:\Users\ryanj\OneDrive\Documents\__2 Uni Files\RMIT\COSC1111\Assignment3_Chatbot_Python\README.md
-# RMIT Cyber Security Course Advisor — Python (Streamlit)
+- Course material and code adapted for RMIT COSC1111 / Assignment 3 (2025). Use for learning and assignment purposes only.
