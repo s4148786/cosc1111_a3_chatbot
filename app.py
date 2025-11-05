@@ -126,9 +126,12 @@ def invoke_bedrock(prompt_text, username, password, max_tokens=640, temperature=
         "messages": [{"role": "user", "content": prompt_text}]
     }
 
+    # Use model_id from session state, fallback to default if not set
+    model_id = st.session_state.get("model_id", MODEL_ID)
+
     response = bedrock_runtime.invoke_model(
         body=json.dumps(payload),
-        modelId=MODEL_ID,
+        modelId=model_id,
         contentType="application/json",
         accept="application/json"
     )
@@ -242,10 +245,14 @@ if not st.session_state["authenticated"]:
             st.session_state["authenticated"] = True
             st.rerun()
 
-    st.info("Enter your Cognito username/password to proceed. The structured JSON files are loaded from the project folder automatically.")
+    st.info(
+        "Enter your Cognito username/password to proceed. "
+        "The structured JSON files are loaded from the project folder automatically. "
+        "If these files are missing, you can upload PDF files containing course information after login."
+    )
     # Show whether default JSONs found
     if st.session_state["courses"] is None or st.session_state["structure"] is None:
-        st.warning("Default JSON files not found in project folder. Place 'courses_data.json' and 'cyber_security_program_structure.json' next to app.py or use PDF mode after login.")
+        st.warning("Default JSON files not found in project folder. Place 'courses_data.json' and 'cyber_security_program_structure.json' next to app.py, or use PDF upload mode after login.")
     st.stop()
 
 # --- Main App (after login) ---
@@ -263,8 +270,6 @@ if upload_mode == "Structured JSON files (preloaded)":
     uploaded_pdfs = None
 else:
     uploaded_pdfs = st.sidebar.file_uploader("\U0001F4C4 Upload one or more PDF files", type=["pdf"], accept_multiple_files=True)
-    # Clear structured preloaded message if exists
-    # uploaded_* JSON uploaders removed per request (files are preloaded)
 
 # --- Model selection (sidebar) ---
 st.sidebar.markdown("---")
@@ -277,8 +282,8 @@ model_choice = st.sidebar.radio(
     ],
     index=0 if MODEL_ID == "anthropic.claude-3-5-sonnet-20241022-v2:0" else 1,
 )
-# update MODEL_ID so invoke_bedrock uses the selected model
-MODEL_ID = model_choice
+# Store selected model in session state to avoid global overwrite
+st.session_state["model_id"] = model_choice
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"Logged in as: `{st.session_state['username']}`")
