@@ -9,12 +9,12 @@ from PyPDF2 import PdfReader
 from pathlib import Path
 
 # === AWS Configuration === #
-COGNITO_REGION = "ap-southeast-2"
-BEDROCK_REGION = "ap-southeast-2"
+COGNITO_REGION = st.secrets.get("COGNITO_REGION")
+BEDROCK_REGION = st.secrets.get("BEDROCK_REGION")
 MODEL_ID = "anthropic.claude-3-5-sonnet-20241022-v2:0"
-IDENTITY_POOL_ID = "ap-southeast-2:eaa059af-fd47-4692-941d-e314f2bd5a0e"
-USER_POOL_ID = "ap-southeast-2_NfoZbDvjD"
-APP_CLIENT_ID = "3p3lrenj17et3qfrnvu332dvka"
+IDENTITY_POOL_ID = st.secrets.get("IDENTITY_POOL_ID")
+USER_POOL_ID = st.secrets.get("USER_POOL_ID")
+APP_CLIENT_ID = st.secrets.get("APP_CLIENT_ID")
 
 CONTEXT_WINDOW = 6            # number of recent turns to include
 SUMMARY_INTERVAL = 8          # summarise after this many total messages
